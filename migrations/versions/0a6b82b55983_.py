@@ -6,6 +6,7 @@ Create Date: 2018-09-04 19:09:45.866336
 
 """
 from alembic import op
+from sqlalchemy.sql import table, column
 import sqlalchemy as sa
 import re
 from server.models.postgis.message import MessageType
@@ -42,6 +43,12 @@ def upgrade():
     project_existence = {}
 
     # Attempt to classify existing messages
+    messages_table = table('messages',
+    column('id', sa.Integer()),
+    column('message_type', sa.Integer()),
+    column('project_id', sa.Integer()),
+    column('task_id', sa.Integer()))
+
     messages = conn.execute('select * from messages')
     for message in messages:
         message_type = None
@@ -79,7 +86,7 @@ def upgrade():
             # Only process messages from projects that still exist
             if project_existence[project_id]:
                 op.execute(
-                    messages.update().where(messages.c.id == message.id)
+                    messages_table.update().where(messages_table.c.id == message.id)
                         .values(message_type=message_type, project_id=project_id, task_id=task_id))
 
 def downgrade():
