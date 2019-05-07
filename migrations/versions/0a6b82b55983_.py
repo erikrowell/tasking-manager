@@ -8,7 +8,7 @@ Create Date: 2018-09-04 19:09:45.866336
 from alembic import op
 import sqlalchemy as sa
 import re
-from server.models.postgis.message import Message, MessageType
+from server.models.postgis.message import MessageType
 from server.models.postgis.project import Project
 
 
@@ -18,7 +18,6 @@ down_revision = '3ee58dee57c9'
 branch_labels = None
 depends_on = None
 
-messages = Message.__table__
 
 def upgrade():
     conn = op.get_bind()
@@ -43,7 +42,8 @@ def upgrade():
     project_existence = {}
 
     # Attempt to classify existing messages
-    for message in conn.execute(messages.select()):
+    messages = conn.execute('select * from messages')
+    for message in messages:
         message_type = None
         project_id = None
         task_id = None

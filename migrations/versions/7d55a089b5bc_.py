@@ -7,17 +7,12 @@ Create Date: 2017-06-26 17:22:12.828934
 """
 from alembic import op
 import sqlalchemy as sa
-from server.models.postgis.project import Project
-from server.models.postgis.task import Task
 
 # revision identifiers, used by Alembic.
 revision = '7d55a089b5bc'
 down_revision = '64b682d53e23'
 branch_labels = None
 depends_on = None
-
-projects = Project.__table__
-tasks = Task.__table__
 
 
 def upgrade():
@@ -27,8 +22,14 @@ def upgrade():
     op.add_column('projects', sa.Column('task_creation_mode', sa.Integer(), nullable=True))
     op.create_index('idx_geometry', 'projects', ['geometry'], unique=False, postgresql_using='gist')
     op.add_column('tasks', sa.Column('extra_properties', sa.Unicode(), nullable=True))
+    # ### end Alembic commands ###
 
-    for project in conn.execute(projects.select()):
+    # Content migration: Check the amount of zoom levels in tasks of a project and set
+    # task_creation_mode to 1 or 0 accordingly.
+    projects = conn.execute('select * from projects')
+    tasks = conn.execute('select * from tasks')
+
+    for project in projects:
         zooms = conn.execute(
             sa.sql.expression.select([tasks.c.zoom]).distinct(tasks.c.zoom)
                 .where(tasks.c.project_id == project.id))
@@ -38,7 +39,6 @@ def upgrade():
             op.execute(
                 projects.update().where(projects.c.id == project.id)
                     .values(task_creation_mode=1))
-    # ### end Alembic commands ###
 
 
 def downgrade():

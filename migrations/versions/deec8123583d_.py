@@ -7,8 +7,6 @@ Create Date: 2018-08-07 23:09:58.621826
 """
 from alembic import op
 import sqlalchemy as sa
-from server.models.postgis.project import Project
-from server.models.postgis.task import Task
 
 
 # revision identifiers, used by Alembic.
@@ -17,13 +15,16 @@ down_revision = 'ac55902fcc3d'
 branch_labels = None
 depends_on = None
 
-projects = Project.__table__
-tasks = Task.__table__
 
 def upgrade():
     conn = op.get_bind()
+    
+    projects = conn.execute('select * from projects')
+    tasks = conn.execute('select * from tasks')
 
-    for project in conn.execute(projects.select()):
+    # Content migration: Check the amount of zoom levels in tasks of a project and set
+    # task_creation_mode to 1 or 0 accordingly.
+    for project in projects:
         zooms = conn.execute(
             sa.sql.expression.select([tasks.c.zoom]).distinct(tasks.c.zoom)
                 .where(tasks.c.project_id == project.id))
